@@ -4,7 +4,7 @@ from rest_framework.reverse import reverse
 from categories.models import Category
 
 
-class SimpleCreateCategoryTestCase(APITestCase):
+class CreateSimpleCategoryTestCase(APITestCase):
     def setUp(self):
         self.url = reverse('categories-app:category-create')
 
