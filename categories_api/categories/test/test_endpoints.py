@@ -77,3 +77,101 @@ class CreateNestedCategoryTestCase(CreateBaseTestCase):
 
         self.assertIn(c1, p.kids.all())
         self.assertIn(c2, p.kids.all())
+
+
+class TaskEndToEndTestCase(APITestCase):
+    def test_post(self):
+        url = reverse('categories-app:category-create')
+        data = {
+            'name': 'Category 1',
+            'children': [
+                {
+                    'name': 'Category 1.1',
+                    'children': [
+                        {
+                            'name': 'Category 1.1.1',
+                            'children': [
+                                {'name': 'Category 1.1.1.1'},
+                                {'name': 'Category 1.1.1.2'},
+                                {'name': 'Category 1.1.1.3'}
+                            ]
+                        },
+                        {
+                            'name': 'Category 1.1.2',
+                            'children': [
+                                {'name': 'Category 1.1.2.1'},
+                                {'name': 'Category 1.1.2.2'},
+                                {'name': 'Category 1.1.2.3'}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    'name': 'Category 1.2',
+                    'children': [
+                        {'name':  'Category 1.2.1'},
+                        {
+                            'name': 'Category 1.2.2',
+                            'children': [
+                                {'name': 'Category 1.2.2.1'},
+                                {'name': 'Category 1.2.2.2'}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(len(Category.objects.all()), 15)
+
+        c1 = Category.objects.get(name='Category 1')
+        self.assertEqual(len(c1.child_of.all()), 0)
+        c1_kids = c1.kids.all()
+        self.assertEqual(len(c1_kids), 2)
+
+        c11 = Category.objects.get(name='Category 1.1')
+        c12 = Category.objects.get(name='Category 1.2')
+        self.assertIn(c11, c1_kids)
+        self.assertIn(c12, c1_kids)
+
+        self.assertEqual(len(c11.child_of.all()), 1)
+        self.assertIn(c1, c11.child_of.all())
+
+        self.assertEqual(len(c12.child_of.all()), 1)
+        self.assertIn(c1, c12.child_of.all())
+
+        self.assertEqual(len(c11.siblings.all()), 1)
+        self.assertEqual(len(c12.siblings.all()), 1)
+
+        self.assertIn(c12, c11.siblings.all())
+        self.assertIn(c11, c12.siblings.all())
+
+        c111 = Category.objects.get(name='Category 1.1.1')
+        self.assertEqual(len(c111.child_of.all()),1)
+        self.assertIn(c11, c111.child_of.all())
+
+        self.assertEqual(len(c111.kids.all()), 3)
+
+        c1111 = Category.objects.get(name='Category 1.1.1.1')
+        c1112 = Category.objects.get(name='Category 1.1.1.2')
+        c1113 = Category.objects.get(name='Category 1.1.1.3')
+
+        self.assertIn(c1111, c111.kids.all())
+        self.assertIn(c1112, c111.kids.all())
+        self.assertIn(c1113, c111.kids.all())
+
+        self.assertEqual(len(c1111.siblings.all()), 2)
+        self.assertEqual(len(c1112.siblings.all()), 2)
+        self.assertEqual(len(c1113.siblings.all()), 2)
+
+        self.assertIn(c1113, c1111.siblings.all())
+        self.assertIn(c1112, c1111.siblings.all())
+
+        self.assertIn(c1111, c1112.siblings.all())
+        self.assertIn(c1113, c1112.siblings.all())
+
+        self.assertIn(c1111, c1113.siblings.all())
+        self.assertIn(c1112, c1113.siblings.all())
