@@ -3,12 +3,14 @@ from rest_framework.serializers import (
     Serializer,
     JSONField,
     ValidationError,
+    IntegerField,
+    CharField
 )
 
 from categories.models import Category
 
 
-class CategorySerializer(ModelSerializer):
+class CategoryCreateSerializer(ModelSerializer):
     children = JSONField(required=False)
 
     class Meta:
@@ -42,13 +44,13 @@ class CategorySerializer(ModelSerializer):
     def process_kids(parent, children):
         kids = []
         for child in children:
-            kids.append(CategorySerializer.retreive_kid(child))
+            kids.append(CategoryCreateSerializer.retreive_kid(child))
         parent.kids.add(*kids)
-        CategorySerializer.set_siblings(kids)
+        CategoryCreateSerializer.set_siblings(kids)
 
     @staticmethod
     def retreive_kid(child):
-        serializer = CategorySerializer(data=child)
+        serializer = CategoryCreateSerializer(data=child)
         serializer.is_valid(raise_exception=True)
         return serializer.create(serializer.validated_data)
 
@@ -57,3 +59,16 @@ class CategorySerializer(ModelSerializer):
         if len(kids) > 0:
             for i, kid in enumerate(kids):
                 kid.siblings.add(*kids[i+1:])
+
+
+class CategorySerializer(ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name')
+
+class CategoryRetrieveSerializer(Serializer):
+    id = IntegerField()
+    name = CharField(max_length=1024)
+    children = CategorySerializer(many=True, required=False)
+    parents = CategorySerializer(many=True, required=False)
+    siblings = CategorySerializer(many=True, required=False)

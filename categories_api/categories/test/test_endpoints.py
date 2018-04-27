@@ -79,6 +79,89 @@ class CreateNestedCategoryTestCase(CreateBaseTestCase):
         self.assertIn(c2, p.kids.all())
 
 
+class RetreiveCategoryBaseTestCase(APITestCase):
+    def setUp(self):
+        self.url_name = 'categories-app:category-details'
+
+
+class RetreiveCategoryErrorTestCase(RetreiveCategoryBaseTestCase):
+    def test_get_not_allowed(self):
+        url = reverse(self.url_name, args=['0'])
+        response = self.client.get(url[:len(url)-2])
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_get_404(self):
+        url = reverse(self.url_name, args=['0'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class RetreiveCategoryTestCase(RetreiveCategoryBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.c1 = Category.objects.create(name='Category 1')
+
+    def test_get_simple_category(self):
+        url = reverse(self.url_name, args=['1'])
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.c1.pk)
+        self.assertEqual(response.data['name'], self.c1.name)
+
+    def test_get_category_with_child(self):
+        c11 = Category.objects.create(name='Category 1.1')
+        self.c1.kids.add(c11)
+
+        url = reverse(self.url_name, args=['1'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(response.data['id'], self.c1.pk)
+        self.assertEqual(response.data['name'], self.c1.name)
+        self.assertEqual(len(response.data['children']), 1)
+        self.assertEqual(response.data['children'][0]['id'], c11.pk)
+        self.assertEqual(response.data['children'][0]['name'], c11.name)
+
+    def test_get_category_with_parents(self):
+        c11 = Category.objects.create(name='Category 1.1')
+        c111 = Category.objects.create(name='Category 1.1.1')
+        self.c1.kids.add(c11)
+        c11.kids.add(c111)
+
+        url = reverse(self.url_name, args=['3'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(response.data['id'], c111.pk)
+        self.assertEqual(response.data['name'], c111.name)
+        self.assertEqual(len(response.data['parents']), 2)
+        self.assertEqual(response.data['parents'][0]['id'], c11.pk)
+        self.assertEqual(response.data['parents'][0]['name'], c11.name)
+        self.assertEqual(response.data['parents'][1]['id'], self.c1.pk)
+        self.assertEqual(response.data['parents'][1]['name'], self.c1.name)
+
+    def test_get_category_with_siblings(self):
+        c11 = Category.objects.create(name='Category 1.1')
+        c12 = Category.objects.create(name='Category 1.2')
+        self.c1.kids.add(c11, c12)
+        c12.siblings.add(c11)
+
+        url = reverse(self.url_name, args=['2'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(response.data['id'], c11.pk)
+        self.assertEqual(response.data['name'], c11.name)
+        self.assertEqual(len(response.data['parents']), 1)
+        self.assertEqual(response.data['parents'][0]['id'], self.c1.pk)
+        self.assertEqual(response.data['parents'][0]['name'], self.c1.name)
+        self.assertEqual(response.data['siblings'][0]['id'], c12.pk)
+        self.assertEqual(response.data['siblings'][0]['name'], c12.name)
+
+
+
+
 class TaskEndToEndTestCase(APITestCase):
     def test_post(self):
         url = reverse('categories-app:category-create')
