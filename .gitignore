@@ -3,6 +3,7 @@
 
 **/*.pyc
 **/*.sqlite3
+**/*.db
 **/.cache
 **/__pycache__/
 
