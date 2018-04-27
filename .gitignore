@@ -1,0 +1,12 @@
+**/.vscode
+**/env_tencoin
+
+**/*.pyc
+**/*.sqlite3
+**/.cache
+**/__pycache__/
+
+**/.pytest_cache/
+**/htmlcov/
+.coverage
+testresults.xml
