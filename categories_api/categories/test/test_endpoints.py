@@ -160,54 +160,54 @@ class RetreiveCategoryTestCase(RetreiveCategoryBaseTestCase):
         self.assertEqual(response.data['siblings'][0]['name'], c12.name)
 
 
-
-
 class TaskEndToEndTestCase(APITestCase):
-    def test_post(self):
+    def setUp(self):
+        self.data = {
+                'name': 'Category 1',
+                'children': [
+                    {
+                        'name': 'Category 1.1',
+                        'children': [
+                            {
+                                'name': 'Category 1.1.1',
+                                'children': [
+                                    {'name': 'Category 1.1.1.1'},
+                                    {'name': 'Category 1.1.1.2'},
+                                    {'name': 'Category 1.1.1.3'}
+                                ]
+                            },
+                            {
+                                'name': 'Category 1.1.2',
+                                'children': [
+                                    {'name': 'Category 1.1.2.1'},
+                                    {'name': 'Category 1.1.2.2'},
+                                    {'name': 'Category 1.1.2.3'}
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'name': 'Category 1.2',
+                        'children': [
+                            {'name':  'Category 1.2.1'},
+                            {
+                                'name': 'Category 1.2.2',
+                                'children': [
+                                    {'name': 'Category 1.2.2.1'},
+                                    {'name': 'Category 1.2.2.2'}
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
         url = reverse('categories-app:category-create')
-        data = {
-            'name': 'Category 1',
-            'children': [
-                {
-                    'name': 'Category 1.1',
-                    'children': [
-                        {
-                            'name': 'Category 1.1.1',
-                            'children': [
-                                {'name': 'Category 1.1.1.1'},
-                                {'name': 'Category 1.1.1.2'},
-                                {'name': 'Category 1.1.1.3'}
-                            ]
-                        },
-                        {
-                            'name': 'Category 1.1.2',
-                            'children': [
-                                {'name': 'Category 1.1.2.1'},
-                                {'name': 'Category 1.1.2.2'},
-                                {'name': 'Category 1.1.2.3'}
-                            ]
-                        }
-                    ]
-                },
-                {
-                    'name': 'Category 1.2',
-                    'children': [
-                        {'name':  'Category 1.2.1'},
-                        {
-                            'name': 'Category 1.2.2',
-                            'children': [
-                                {'name': 'Category 1.2.2.1'},
-                                {'name': 'Category 1.2.2.2'}
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
 
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, self.data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+
+    def test_post(self):
         self.assertEqual(len(Category.objects.all()), 15)
 
         c1 = Category.objects.get(name='Category 1')
@@ -258,3 +258,83 @@ class TaskEndToEndTestCase(APITestCase):
 
         self.assertIn(c1111, c1113.siblings.all())
         self.assertIn(c1112, c1113.siblings.all())
+
+    def test_get(self):
+        expected = {
+            'id': 2,
+            'name': 'Category 1.1',
+            'parents': [
+                {
+                    'id':1,
+                    'name': 'Category 1'
+                }
+            ],
+            'children': [
+                {
+                    'id':3,
+                    'name': 'Category 1.1.1'
+                },
+                {
+                    'id': 7,
+                    'name': 'Category 1.1.2'
+                }
+            ],
+            'siblings': [ # sisters and brothers
+                {
+                    'id': 11,
+                    'name': 'Category 1.2'
+                }
+            ]
+        }
+
+        url = reverse('categories-app:category-details', args=[2])
+        response = self.client.get(url, self.data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        actual = response.data
+        self.assertEqual(expected['id'], actual['id'])
+        self.assertEqual(expected['name'], actual['name'])
+        self.assertEqual(expected['parents'], actual['parents'])
+        self.assertEqual(expected['children'], actual['children'])
+        self.assertEqual(expected['siblings'], actual['siblings'])
+
+        expected = {
+            'id': 8,
+            'name': 'Category 1.1.2.1',
+                'parents': [
+                    {
+                        'id': 7,
+                        'name': 'Category 1.1.2'
+                    },
+                    {
+                        'id': 2,
+                        'name': 'Category 1.1'
+                    },
+                    {
+                        'id': 1,
+                        'name': 'Category 1'
+                    },
+                ],
+            'children': [],
+            'siblings': [
+                {
+                    'id': 9,
+                    'name': 'Category 1.1.2.2'
+                },
+                {
+                    'id': 10,
+                    'name': 'Category 1.1.2.3'
+                }
+            ]
+        }
+
+        url = reverse('categories-app:category-details', args=[8])
+        response = self.client.get(url, self.data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        actual = response.data
+        self.assertEqual(expected['id'], actual['id'])
+        self.assertEqual(expected['name'], actual['name'])
+        self.assertEqual(expected['parents'], actual['parents'])
+        self.assertEqual(expected['children'], actual['children'])
+        self.assertEqual(expected['siblings'], actual['siblings'])

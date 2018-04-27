@@ -20,19 +20,10 @@ class CategoryRetrieveView(RetrieveAPIView):
         pk = fetch_pk(self.kwargs)
         obj = get_object_or_404(Category, pk=pk)
         data = {'id': obj.pk, 'name': obj.name}
-
-        kids = obj.kids.all()
-        if len(kids) > 0:
-            data['children'] = kids
-
-        if len(obj.child_of.all()) > 0:
-            # Based on task assume that only one direct parent.
-            data['parents'] = fetch_parents(obj)
-
-        siblings = obj.siblings.all()
-        if len(siblings) > 0:
-            data['siblings'] = siblings
-
+        data['children'] = obj.kids.all()
+        data['parents'] = fetch_parents(obj) # Based on task assume that only
+                                             # one direct parent.
+        data['siblings'] = obj.siblings.all()
         serializer = CategoryRetrieveSerializer(data)
 
         return Response(data=serializer.data)
