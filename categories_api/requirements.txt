@@ -1,6 +1,6 @@
 astroid==1.6.3
 attrs==17.4.0
-Django==2.1.5
+Django==2.1.16
 djangorestframework==3.8.2
 isort==4.3.4
 lazy-object-proxy==1.3.1
